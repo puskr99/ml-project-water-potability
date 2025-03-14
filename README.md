@@ -2,7 +2,7 @@
 
 Authors
 
-    - Puskar Adhikari (st124963)
+    - Puskar Adhikari (st125098)
     - Shreeyukta Pradhanang (st125168)
     - Inisha Pradhan (st125563)
     - Neha Shrestha (st124963)
