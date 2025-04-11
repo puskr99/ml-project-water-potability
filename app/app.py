@@ -51,8 +51,7 @@ home_layout = dbc.Container(
         html.H1("Water Quality Dashboard"),
         html.Hr(),
         dbc.Row(
-            [
-                dbc.Col(
+            dbc.Col(
                     [
                         html.Label("Select Canal:"),
                         dcc.Dropdown(
@@ -68,13 +67,47 @@ home_layout = dbc.Container(
                             value='TEMP. (oC)',  # Default to pH
                             clearable=False
                         ),
+                        # html.Label("Select Parameter 2:", style={'marginTop': '20px'}),
+                        # dcc.Dropdown(
+                        #     id='parameter2-dropdown',
+                        #     options=parameter_options,
+                        #     value='do_mg_l',
+                        #     clearable=False
+                        # ),
                     ],
                     md=4
                 ),
+        ),
+        dbc.Row(
+            [
+                # dbc.Col(
+                #     [
+                #         html.Label("Select Canal:"),
+                #         dcc.Dropdown(
+                #             id='canal-dropdown',
+                #             options=canal_options,
+                #             value=canal_options[0]['value'],  # Default to first canal
+                #             clearable=False
+                #         ),
+                #         html.Label("Select Parameter:", style={'marginTop': '20px'}),
+                #         dcc.Dropdown(
+                #             id='parameter-dropdown',
+                #             options=parameter_options,
+                #             value='TEMP. (oC)',  # Default to pH
+                #             clearable=False
+                #         ),
+                #     ],
+                #     md=4
+                # ),
                 dbc.Col(
-                    dcc.Graph(id='water-quality-graph'),
-                    md=8
+                    # dcc.Graph(id='water-quality-graph'),
+                    dcc.Graph(id='bar-graph'),
+                    md=6
                 ),
+                # dbc.Col(
+                #     dcc.Graph(id='boxplt-graph'),
+                #     md=6
+                # ),
             ],
             align="center",
         ),
@@ -135,7 +168,8 @@ def display_page(pathname):
 #         return home_layout
 
 @app.callback(
-    Output('water-quality-graph', 'figure'),
+    # Output('water-quality-graph', 'figure'),
+     Output('bar-graph', 'figure'),
     [Input('canal-dropdown', 'value'),
      Input('parameter-dropdown', 'value')]
 )
@@ -184,6 +218,75 @@ def update_graph(selected_canal, selected_parameter):
     }
     return fig
 
+
+# In app.py, update the update_line_graph callback
+# @app.callback(
+#     # Output('water-quality-graph', 'figure'),
+#     Output('line-graph', 'figure'),
+#     [Input('canal-dropdown', 'value'),
+#      Input('parameter-dropdown', 'value')]
+# )
+# def update_line_graph(selected_canal, selected_parameter):
+#     filtered_df = df[df['Canal_name (EN)'] == selected_canal]
+#     fig = {
+#         'data': [
+#             {
+#                 'x': filtered_df['Sample_water_point (EN)'],
+#                 'y': filtered_df[selected_parameter],
+#                 'type': 'scatter',  # Use scatter with mode='lines' for a line chart
+#                 'mode': 'lines+markers',
+#                 'name': selected_parameter,
+#                 'line': {'color': '#007bff'}
+#             }
+#         ],
+#         'layout': {
+#             'title': f'{selected_parameter} Trend in {selected_canal}',
+#             'xaxis': {
+#                 'title': {'text': 'Sampling Points', 'font': {'size': 14, 'color': '#333'}},
+#                 'tickangle': -45,
+#                 'automargin': True
+#             },
+#             'yaxis': {
+#                 'title': {'text': f'{selected_parameter} Value', 'font': {'size': 14, 'color': '#333'}}
+#             },
+#             'margin': {'b': 150},
+#             'plot_bgcolor': '#f8f9fa',
+#             'paper_bgcolor': '#f8f9fa'
+#         }
+#     }
+#     return fig
+
+# In app.py, update the update_box_plot_graph callback
+# @app.callback(
+#     Output('boxplt-graph', 'figure'),
+#     [Input('parameter-dropdown', 'value')]
+# )
+# def update_boxplt_graph(selected_parameter):
+#     fig = {
+#         'data': [
+#             {
+#                 'type': 'box',
+#                 'y': df[df['Canal_name (EN)'] == canal][selected_parameter],
+#                 'name': canal,
+#                 'boxpoints': 'all',  # Show all points
+#                 'jitter': 0.3,  # Spread points for visibility
+#                 'pointpos': -1.8  # Position points to the left of the box
+#             } for canal in df['Canal_name (EN)'].unique()
+#         ],
+#         'layout': {
+#             'title': f'Distribution of {selected_parameter} Across Canals',
+#             'xaxis': {
+#                 'title': {'text': 'Canal', 'font': {'size': 14, 'color': '#333'}}
+#             },
+#             'yaxis': {
+#                 'title': {'text': f'{selected_parameter} Value', 'font': {'size': 14, 'color': '#333'}}
+#             },
+#             'margin': {'b': 150},
+#             'plot_bgcolor': '#f8f9fa',
+#             'paper_bgcolor': '#f8f9fa'
+#         }
+#     }
+#     return fig
 
 # Run the app
 if __name__ == "__main__":
