@@ -6,6 +6,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import numpy as np
+import os
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -408,4 +409,7 @@ def update_active_link(pathname):
     ]
 
 
-app.run(debug=True)
+if __name__ == "__main__":
+    # Render sets the PORT environment variable for you.
+    port = int(os.environ.get("PORT", 8050))  # Default to 8050 if PORT is not set
+    app.run(host="0.0.0.0", port=port)
