@@ -107,6 +107,6 @@ Special thanks to **Dr. Chaklam Silpasuwanchai** for guiding us through this pro
 
 ## 🌐 Live Website
 
-🔗 [https://ml-project-water-potability.onrender.com](#)  
+🔗 https://ml-project-water-potability.onrender.com 
 
 ---
