@@ -5,10 +5,13 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import numpy as np
 import warnings
 warnings.filterwarnings("ignore")
+
+
 import joblib
-model = joblib.load("code/wpp_model.pkl")
+model = joblib.load("code/wpp_model_weight.pkl")
 
 # Load and preprocess data
 df = pd.read_csv('data/water.csv')
@@ -86,8 +89,12 @@ def dashboard_layout():
     ], fluid=False)
 
 def prediction_layout():
-    input_fields = list(feature_info.items())
-    cols = [input_fields[i::3] for i in range(3)]
+    # Only include selected features
+    selected_feature_keys = ["ph", "do", "bod","no3", "tds",  "cod", "coliform"]
+    filtered_feature_info = {k: feature_info[k] for k in selected_feature_keys}
+
+    input_fields = list(filtered_feature_info.items())
+    cols = [input_fields[i::3] for i in range(3)]  # Distribute into 3 columns
 
     return dbc.Container([
         html.H2("Water Quality Prediction", className="text-center mt-4 mb-4"),
@@ -116,6 +123,7 @@ def prediction_layout():
     ], fluid=False)
 
 
+
 app.layout = html.Div([
     dcc.Location(id='url', refresh=False),
     navbar,
@@ -129,11 +137,13 @@ def display_page(pathname):
         return prediction_layout()
     return dashboard_layout()
 
+selected_feature_keys = ["ph", "do", "bod","no3", "tds",  "cod", "coliform"]
+
 # Prediction logic
 @app.callback(
     Output('prediction-output', 'children'),
     Input('predict-button', 'n_clicks'),
-    [State(key, 'value') for key in feature_info.keys()]
+    [State(key, 'value') for key in selected_feature_keys]
 )
 def predict_quality(n_clicks, *inputs):
     if not n_clicks:
@@ -144,7 +154,8 @@ def predict_quality(n_clicks, *inputs):
 
     try:
         values = [float(x) for x in inputs]
-        wqi = sum(values) / len(values)
+        print(values)
+        wqi = np.exp(model.predict([values])[0])
         if wqi >= 70:
             label = "✅ Safe"
         elif wqi >= 50:
@@ -157,13 +168,13 @@ def predict_quality(n_clicks, *inputs):
 
 # Reset button logic
 @app.callback(
-    [Output(key, 'value') for key in feature_info.keys()],
+    [Output(key, 'value') for key in selected_feature_keys],
     Input('reset-button', 'n_clicks')
 )
 def reset_fields(n):
     if not n:
         return dash.no_update
-    return [None] * len(feature_info)
+    return [None] * len(selected_feature_keys)
 
 # App layout with routing
 app.layout = html.Div([
