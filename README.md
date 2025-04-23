@@ -43,23 +43,18 @@ We utilize a real-world dataset containing water quality metrics across Bangkok'
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-repo/bangkok-water-dashboard.git
-   cd bangkok-water-dashboard
+   git clone https://github.com/puskr99/ml-project-water-potability.git
    ```
 
 2. **Install dependencies**
    We recommend using a virtual environment.
    ```bash
-   pip install -r requirements.txt
+   pip install -r req.txt
    ```
-
-3. **Prepare your files**
-   - Place `wpp_model_weight.pkl` and `scaler.dump` in the `/code` folder.
-   - Place `canalwater1.csv` and `water.csv` in the `/data` folder.
 
 4. **Run the app**
    ```bash
-   python app.py
+   python app/app.py
    ```
 
 5. **Access the app**
@@ -74,13 +69,10 @@ We utilize a real-world dataset containing water quality metrics across Bangkok'
 ├── app.py                  # Main Dash app with routing
 ├── map.py                  # Map layout & logic
 ├── data/
-│   ├── water.csv           # Water quality time-series data
-│   └── canalwater1.csv     # Location and parameter data
+│   ├── water.csv           # Water quality data
 ├── code/
 │   ├── wpp_model_weight.pkl # Trained ML model
 │   └── scaler.dump          # Feature scaler used in prediction
-├── assets/
-│   └── (optional) custom CSS or images
 └── README.md
 ```
 
@@ -115,6 +107,6 @@ Special thanks to **Dr. Chaklam Silpasuwanchai** for guiding us through this pro
 
 ## 🌐 Live Website
 
-🔗 [ml-project-water-potability.onrender.com](#)  
+🔗 [https://ml-project-water-potability.onrender.com](#)  
 
 ---
