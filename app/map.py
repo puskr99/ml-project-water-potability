@@ -17,7 +17,7 @@ df['year'] = df['year'].astype(int) - 543
 
 
 
-for param in ['TEMP. (oC)', '  pH', 'DO (mg/l)', 'H2S (mg/l)', 'BOD (mg/l)', 'COD (mg/l)', 'SS (mg/l)', 'TKN (mg/l)', 'NH3N (mg/l)', 'NO2 (mg/l)', 'NO3 (mg/l)', 'T-P (mg/l)', 'T.Coliform (col/100ml)']:
+for param in ['  pH','TEMP. (oC)',  'DO (mg/l)', 'H2S (mg/l)', 'BOD (mg/l)', 'COD (mg/l)', 'SS (mg/l)', 'TKN (mg/l)', 'NH3N (mg/l)', 'NO2 (mg/l)', 'NO3 (mg/l)', 'T-P (mg/l)', 'T.Coliform (col/100ml)']:
     if param in df.columns:
         df[param] = pd.to_numeric(df[param], errors='coerce')
 
@@ -30,8 +30,8 @@ correlation_matrix = df_filtered.corr(numeric_only=True)
 
 canal_options = [{'label': 'All Canals', 'value': 'all'}] + [{'label': canal, 'value': canal} for canal in df['Canal_name (EN)'].unique()]
 parameter_options = [
-    {'label': 'Temperature (°C)', 'value': 'TEMP. (oC)'},
     {'label': 'pH', 'value': '  pH'},
+    {'label': 'Temperature (°C)', 'value': 'TEMP. (oC)'},
     {'label': 'Dissolved Oxygen (mg/l)', 'value': 'DO (mg/l)'},
     {'label': 'Hydrogen Sulfide (mg/l)', 'value': 'H2S (mg/l)'},
     {'label': 'Biochemical Oxygen Demand (mg/l)', 'value': 'BOD (mg/l)'},
@@ -48,8 +48,8 @@ year_options = [{'label': 'All Years', 'value': 'all'}] + [{'label': str(year), 
 
 # Define safety thresholds for each parameter
 safety_thresholds = {
-    'TEMP. (oC)': {'safe': (15, 30), 'moderate': (10, 35), 'unsafe': (-float('inf'), float('inf'))},
     '  pH': {'safe': (6.5, 8.5), 'moderate': (5.5, 9.5), 'unsafe': (-float('inf'), float('inf'))},
+    'TEMP. (oC)': {'safe': (15, 30), 'moderate': (10, 35), 'unsafe': (-float('inf'), float('inf'))},
     'DO (mg/l)': {'safe': (5, 8), 'moderate': (3, 10), 'unsafe': (-float('inf'), float('inf'))},
     'H2S (mg/l)': {'safe': (0, 0.05), 'moderate': (0.05, 0.1), 'unsafe': (0.1, float('inf'))},
     'BOD (mg/l)': {'safe': (0, 2), 'moderate': (2, 5), 'unsafe': (5, float('inf'))},
@@ -107,7 +107,7 @@ map_layout = dbc.Container([
             dcc.Dropdown(
                 id='parameter-dropdown',
                 options=parameter_options,
-                value='TEMP. (oC)',
+                value='  pH',
                 clearable=False,
                 className="mb-3"
             ),

@@ -58,8 +58,8 @@ feature_info = {
 selected_feature_keys = ["ph", "do", "bod", "no3", "tds", "cod", "coliform"]
 
 parameter_options = [
-    {'label': 'Temperature (°C)', 'value': 'TEMP. (oC)'},
     {'label': 'pH', 'value': '  pH'},
+    {'label': 'Temperature (°C)', 'value': 'TEMP. (oC)'},
     {'label': 'Dissolved Oxygen (mg/l)', 'value': 'DO (mg/l)'},
     {'label': 'Hydrogen Sulfide (mg/l)', 'value': 'H2S (mg/l)'},
     {'label': 'Biochemical Oxygen Demand (mg/l)', 'value': 'BOD (mg/l)'},
