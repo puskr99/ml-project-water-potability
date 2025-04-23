@@ -83,7 +83,7 @@ def get_safety_status(value, parameter):
         status = 'unsafe'
         color = '#FF0000'  # Red
     
-    print(f"Parameter: {parameter}, Value: {value}, Status: {status}, Color: {color}")
+    # print(f"Parameter: {parameter}, Value: {value}, Status: {status}, Color: {color}")
     return status, color
 
 # Define page layouts

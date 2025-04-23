@@ -112,21 +112,21 @@ def dashboard_layout():
     ], fluid=False)
 
 def prediction_layout():
-    feature_defaults = {
-        "ph": 7.0,
-        "do": 6.5,
-        "bod": 2.0,
-        "no3": 5.0,
-        "tds": 300,
-        "cod": 20,
-        "coliform": 500
-    }
+    # feature_defaults = {
+    #     "ph": 7.0,
+    #     "do": 6.5,
+    #     "bod": 2.0,
+    #     "no3": 5.0,
+    #     "tds": 300,
+    #     "cod": 20,
+    #     "coliform": 500
+    # }
     filtered_feature_info = {k: feature_info[k] for k in selected_feature_keys}
     input_fields = list(filtered_feature_info.items())
     cols = [input_fields[i::2] for i in range(2)]
 
     return dbc.Container([
-        html.H2("Water Quality Prediction", className="text-center mt-4 mb-4"),
+        html.H2("Water Potability Prediction", className="text-center mt-4 mb-4"),
 
         dbc.Row([
             dbc.Col([
@@ -139,7 +139,6 @@ def prediction_layout():
                             placeholder=f"Enter {info[1]}",
                             step="any",
                             min=0,
-                            value=feature_defaults.get(key, 0),
                             required=True
                         )
                     ], md=6, className="mb-3")
@@ -173,6 +172,8 @@ def prediction_layout():
     [State(key, 'value') for key in selected_feature_keys],
     prevent_initial_call=True
 )
+
+
 def predict_quality(n_clicks, *inputs):
     if not n_clicks:
         return no_update, no_update
@@ -254,30 +255,38 @@ app.layout = html.Div([
 def render_tab_content(tab):
     if tab == 'tab-canal':
         return dbc.Container([
-        dbc.Row([
-            dbc.Col([
-                html.Label("Select Canal:", className="fw-bold"),
-                dcc.Dropdown(
-                    id='bar-canal-dropdown',
-                    options=canal_options,
-                    value=canal_options[0]['value'],
-                    clearable=False
-                )
-            ], md=6),
+            html.H4("Canal-wise Water Quality Overview", className="text-center mb-4 "),
 
-            dbc.Col([
-                html.Label("Select Metric:", className="fw-bold"),
-                dcc.Dropdown(
-                    id='bar-metric-dropdown',
-                    options=parameter_options,
-                    value='DO (mg/l)',
-                    clearable=False
-                )
-            ], md=6)
-        ], className="mb-4"),
+            dbc.Row([
+                dbc.Col([
+                    html.Label("Select Canal", className="fw-semibold text-secondary mb-2"),
+                    dcc.Dropdown(
+                        id='bar-canal-dropdown',
+                        options=canal_options,
+                        value=canal_options[0]['value'],
+                        clearable=False,
+                        className="shadow-sm"
+                    )
+                ], md=6),
 
-        dcc.Graph(id='canal-bar-graph')
-    ])
+                dbc.Col([
+                    html.Label("Select Metric", className="fw-semibold text-secondary mb-2"),
+                    dcc.Dropdown(
+                        id='bar-metric-dropdown',
+                        options=parameter_options,
+                        value='DO (mg/l)',
+                        clearable=False,
+                        className="shadow-sm"
+                    )
+                ], md=6)
+            ], className="mb-3"),
+
+            dbc.Row([
+                dbc.Col([
+                    dcc.Graph(id='canal-bar-graph', config={"displayModeBar": False})
+                ])
+            ])
+        ])
 
     elif tab == 'tab-main-graph':
         return html.Div([
@@ -323,7 +332,7 @@ def render_tab_content(tab):
         ])
     elif tab == 'tab-map':
         return map_layout
-       
+
 
 @app.callback(
     Output('canal-bar-graph', 'figure'),
@@ -331,17 +340,66 @@ def render_tab_content(tab):
     Input('bar-metric-dropdown', 'value')
 )
 def update_bar_chart(selected_canal, selected_metric):
-    df_canal = df[df['Canal_name (EN)'] == selected_canal]
-    df_grouped = df_canal.groupby('Sample_water_point (EN)')[selected_metric].mean().reset_index()
-    fig = px.bar(df_grouped, x='Sample_water_point (EN)', y=selected_metric,
-                 title=f"{selected_metric} per Sample Point in {selected_canal}",
-                 labels={selected_metric: selected_metric, 'Sample_water_point (EN)': 'Sample Point'},
-                 color=selected_metric, height=500, color_continuous_scale='mint')
-    fig.update_layout(
-        xaxis_tickangle=-45,
-        height=500
-    )
-    return fig
+    try:
+        print("Selected Canal:", selected_canal)
+        print("Selected Metric:", selected_metric)
+        print("Available columns:", df.columns.tolist())
+
+        df_canal = df[df['Canal_name (EN)'] == selected_canal]
+
+        if selected_metric not in df_canal.columns:
+            raise ValueError(f" Column '{selected_metric}' not found in DataFrame!")
+
+        df_grouped = df_canal.groupby('Sample_water_point (EN)')[selected_metric].mean().reset_index()
+
+        fig = px.bar(
+                df_grouped,
+                x='Sample_water_point (EN)',
+                y=selected_metric,
+                title=f"{selected_metric} at Each Sample Point in {selected_canal}",
+                labels={
+                    'Sample_water_point (EN)': 'Sampling Point',
+                    selected_metric: selected_metric
+                },
+                color=selected_metric,
+                color_continuous_scale=px.colors.sequential.Aggrnyl,  # Chic pastel green-blue
+                height=660
+            )
+
+        fig.update_layout(
+                template="plotly_white",
+                font=dict(family="Inter, sans-serif", size=13),
+                title_x=0.5,
+                title_font=dict(size=18, color="#2c3e50"),
+                plot_bgcolor="#fdfdfd",
+                paper_bgcolor="#ffffff",
+                margin=dict(t=60, l=40, r=40, b=80),
+                xaxis=dict(
+                    title='',
+                    tickangle=-45,
+                    showgrid=False,
+                    zeroline=False,
+                ),
+                yaxis=dict(
+                    title=selected_metric,
+                    showgrid=True,
+                    gridcolor='rgba(200,200,200,0.2)',
+                    zeroline=False,
+                ),
+                coloraxis_colorbar=dict(
+                    title=selected_metric,
+                    tickfont=dict(size=12),
+                    lenmode='pixels', len=150
+                )
+            )
+
+        return fig
+
+    except Exception as e:
+        print(" Error in update_bar_chart:", e)
+        return go.Figure().update_layout(title=f"Error: {e}")
+
+
 
 @app.callback(
     Output('gauge-graph', 'figure', allow_duplicate=True),
@@ -434,19 +492,6 @@ def update_cards(year, canal):
         f"{row['SS (mg/l)']:.2f}"
     )
 
-if __name__ == '__main__':
-    def update_cards(year, canal):
-        filtered = aggregated_df[(aggregated_df['year'] == year) & (aggregated_df['Canal_name (EN)'] == canal)]
-        if filtered.empty:
-            return "N/A", "N/A", "N/A"
-
-        row = filtered.iloc[0]
-        return (
-            f"{row['  pH']:.2f}",
-            f"{row['DO (mg/l)']:.2f}",
-            f"{row['SS (mg/l)']:.2f}"
-        )
-
 @app.callback(
     Output('trend-line-chart', 'figure'),
     Input('trend-canal-dropdown', 'value')
@@ -470,13 +515,15 @@ def update_trend_chart(selected_canal):
         y='Measurement',
         color='Metric',
         markers=True,
-        title=f"Water Quality Trends in {selected_canal} (2018–2020)"
+        title=f"Water Quality Trends in {selected_canal} (2018–2020)",
     )
 
     fig.update_layout(
         legend_title_text='Metric',
         height=500,
-        xaxis=dict(tickmode='linear', dtick=1)  # Ensure only 2018, 2019, 2020 appear
+        xaxis=dict(tickmode='linear', dtick=1),
+        title_x=0.5,
+        margin=dict(t=60, b=40, l=40, r=40)
     )
 
     return fig
@@ -491,6 +538,8 @@ def update_active_link(pathname):
         dbc.NavLink("Prediction", href="/prediction", className=f"text-white {'fw-bold border-bottom border-2 border-white' if pathname == '/prediction' else ''}")
     ]
 
+import os
+import logging
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8050)) ## default to 8050 if not set
