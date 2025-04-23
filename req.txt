@@ -1,0 +1,17 @@
+dash==3.0.3
+dash-bootstrap-components==2.0.2
+graphene==3.4.3
+graphql-core==3.2.6
+graphql-relay==3.2.0
+greenlet==3.1.1
+joblib==1.4.2
+matplotlib==3.10.0
+matplotlib-inline==0.1.7
+numpy==2.0.2
+nvidia-nccl-cu12==2.26.2.post1
+pandas==2.2.3
+plotly==6.0.1
+scikit-learn==1.6.1
+scipy==1.15.1
+seaborn==0.13.2
+sklearn-compat==0.1.3
