@@ -12,6 +12,7 @@ warnings.filterwarnings("ignore")
 
 import joblib
 model = joblib.load("code/wpp_model_weight.pkl")
+scaler = joblib.load("code/scaler.dump")
 
 # Load and preprocess data
 df = pd.read_csv('data/water.csv')
@@ -155,7 +156,9 @@ def predict_quality(n_clicks, *inputs):
     try:
         values = [float(x) for x in inputs]
         print(values)
-        wqi = np.exp(model.predict([values])[0])
+        values = np.array(values).reshape(1, -1)
+        scaled_data = scaler.transform(values)
+        wqi = np.exp(model.predict(scaled_data)[0])
         if wqi >= 70:
             label = "✅ Safe"
         elif wqi >= 50:
