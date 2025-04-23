@@ -1,6 +1,6 @@
 # 💧 Machine Learning for Water Safety: Potability Prediction in Bangkok’s Canals
 
-This project focuses on predicting the **Water Quality Index (WQI)** for various canal locations in Bangkok using a machine learning model. It visualizes real water parameter data and predicts safety levels using a trained regression model. The application combines interactive dashboards, geospatial mapping, and predictive analytics.
+This project focuses on predicting the **Water Quality Index (WQI)** for various canal locations in Bangkok using a machine learning model. It visualizes real water parameter chemical datas and predicts safety levels using a trained regression model. The application combines interactive dashboards, geospatial mapping, and predictive analytics.
 
 ---
 
