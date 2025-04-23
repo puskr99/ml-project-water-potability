@@ -10,7 +10,6 @@ from dash import dcc, html, Input, Output, State, no_update
 
 from map import map_layout
 
-import os
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -492,7 +491,4 @@ def update_active_link(pathname):
 
 
 
-if __name__ == "__main__":
-    # Render sets the PORT environment variable for you.
-    port = int(os.environ.get("PORT", 8050))  # Default to 8050 if PORT is not set
-    app.run(host="0.0.0.0", port=port)
+app.run(debug=True)
