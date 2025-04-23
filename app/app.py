@@ -5,6 +5,8 @@ import dash_leaflet as dl
 import plotly.express as px
 import plotly.graph_objects as go
 import dash_bootstrap_components as dbc
+import os
+
 from plotly.subplots import make_subplots
 from dash import dcc, html, Input, Output, State, no_update
 
@@ -490,5 +492,6 @@ def update_active_link(pathname):
     ]
 
 
-
-app.run(debug=True)
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8050)) ## default to 8050 if not set
+    app.run(host="0.0.0.0", port = port)
