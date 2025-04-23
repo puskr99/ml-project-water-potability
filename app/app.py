@@ -1,25 +1,33 @@
 import dash
-import dash_bootstrap_components as dbc
-from dash import dcc, html, Input, Output, State
+import numpy as np
 import pandas as pd
+import dash_leaflet as dl
 import plotly.express as px
 import plotly.graph_objects as go
+import dash_bootstrap_components as dbc
 from plotly.subplots import make_subplots
-import numpy as np
+from dash import dcc, html, Input, Output, State, no_update
+
+from map import map_layout
+
 import os
 import warnings
 warnings.filterwarnings("ignore")
-
 
 import joblib
 model = joblib.load("code/wpp_model_weight.pkl")
 scaler = joblib.load("code/scaler.dump")
 
-# Load and preprocess data
 df = pd.read_csv('data/water.csv')
 df = df.dropna(subset=['year', 'Canal_name (EN)', 'Sample_water_point (EN)', '  pH', 'SS (mg/l)', 'NH3N (mg/l)', 'DO (mg/l)', 'TEMP. (oC)', 'H2S (mg/l)', 'BOD (mg/l)', 'COD (mg/l)', 'TKN (mg/l)', 'NO2 (mg/l)', 'NO3 (mg/l)', 'T-P (mg/l)', 'T.Coliform (col/100ml)'])
 df = df[df['Canal_name (EN)'] != '#VALUE!']
 df['year'] = df['year'].astype(int) - 543
+
+map_df = pd.read_csv('data/canalwater1.csv')
+
+map_df = map_df[['Canal_name (EN)', 'Latitude', 'Longitude', '  pH', 'DO (mg/l)', 'SS (mg/l)']]
+map_df = map_df.dropna(subset=['Latitude', 'Longitude', '  pH', 'DO (mg/l)', 'SS (mg/l)'])
+map_df = map_df[(map_df['Latitude'] != 0) & (map_df['Longitude'] != 0)]
 
 aggregated_df = df.groupby(['Canal_name (EN)', 'year']).agg({
     '  pH': 'mean', 'DO (mg/l)': 'mean', 'SS (mg/l)': 'mean', 'NH3N (mg/l)': 'mean',
@@ -31,32 +39,47 @@ aggregated_df = df.groupby(['Canal_name (EN)', 'year']).agg({
 canal_options = [{'label': canal, 'value': canal} for canal in df['Canal_name (EN)'].unique() if canal != '#VALUE!']
 year_options = [{'label': str(year), 'value': year} for year in sorted(df['year'].unique())]
 
-# Sanitized feature IDs (for use in Dash components)
 feature_info = {
     "ph": ("  pH", "pH"),
-    "do": ("DO (mg/l)", "Dissolved Oxygen"),
-    "tds": ("SS (mg/l)", "Suspended Solids"),
-    "nh3n": ("NH3N (mg/l)", "Ammonia"),
-    "temp": ("TEMP. (oC)", "Temperature"),
-    "h2s": ("H2S (mg/l)", "Hydrogen Sulfide"),
-    "bod": ("BOD (mg/l)", "BOD"),
-    "cod": ("COD (mg/l)", "COD"),
-    "tkn": ("TKN (mg/l)", "TKN"),
-    "no2": ("NO2 (mg/l)", "NO2"),
-    "no3": ("NO3 (mg/l)", "NO3"),
+    "do": ("DO (mg/l)", "Dissolved Oxygen (mg/l)"),
+    "tds": ("SS (mg/l)", "Suspended Solids (mg/l)"),
+    "nh3n": ("NH3N (mg/l)", "Ammonia (mg/l)"),
+    "temp": ("TEMP. (oC)", "Temperature (oC)"),
+    "h2s": ("H2S (mg/l)", "Hydrogen Sulfide (mg/l)"),
+    "bod": ("BOD (mg/l)", "Biochemical Oxygen Demand (mg/l)"),
+    "cod": ("COD (mg/l)", "Chemical Oxygen Demand (mg/l)"),
+    "tkn": ("TKN (mg/l)", "Total Kjeldahl Nitrogen (mg/l)"),
+    "no2": ("NO2 (mg/l)", "Nitrite (mg/l)"),
+    "no3": ("NO3 (mg/l)", "Nitrate (mg/l)"),
     "tp": ("T-P (mg/l)", "Total Phosphorus"),
     "coliform": ("T.Coliform (col/100ml)", "Coliform")
 }
+selected_feature_keys = ["ph", "do", "bod", "no3", "tds", "cod", "coliform"]
 
+parameter_options = [
+    {'label': 'Temperature (°C)', 'value': 'TEMP. (oC)'},
+    {'label': 'pH', 'value': '  pH'},
+    {'label': 'Dissolved Oxygen (mg/l)', 'value': 'DO (mg/l)'},
+    {'label': 'Hydrogen Sulfide (mg/l)', 'value': 'H2S (mg/l)'},
+    {'label': 'Biochemical Oxygen Demand (mg/l)', 'value': 'BOD (mg/l)'},
+    {'label': 'Chemical Oxygen Demand (mg/l)', 'value': 'COD (mg/l)'},
+    {'label': 'Suspended Solids (mg/l)', 'value': 'SS (mg/l)'},
+    {'label': 'Total Kjeldahl Nitrogen (mg/l)', 'value': 'TKN (mg/l)'},
+    {'label': 'Ammonia Nitrogen (mg/l)', 'value': 'NH3N (mg/l)'},
+    {'label': 'Nitrite[NO2] (mg/l)', 'value': 'NO2 (mg/l)'},
+    {'label': 'Nitrate[NO3] (mg/l)', 'value': 'NO3 (mg/l)'},
+    {'label': 'Total Phosphorus (mg/l)', 'value': 'T-P (mg/l)'},
+    {'label': 'Total Coliform (col/100ml)', 'value': 'T.Coliform (col/100ml)'}
+]
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], suppress_callback_exceptions=True)
-app.title = "Bangkok Water Dashboard"
+app.title = "Bangkok Canal Water Quality"
 
 navbar = html.Div([
     dcc.Location(id='nav-url', refresh=False),
     dbc.Navbar(
         dbc.Container([
-            dbc.NavbarBrand("Bangkok Water Quality", href="/", className="fw-semibold fs-4 text-white"),
+            dbc.NavbarBrand("Bangkok Canal Water Quality", href="/", className="fw-semibold fs-4 text-white"),
             dbc.NavbarToggler(id="navbar-toggler"),
             dbc.Collapse(
                 html.Div(id="nav-links", className="ms-auto d-flex gap-3"),
@@ -70,17 +93,14 @@ navbar = html.Div([
     )
 ])
 
-
 # Layouts for Dashboard and Prediction Pages
 def dashboard_layout():
     return dbc.Container([
-        html.H2("Bangkok Water Quality Dashboard", className="text-center mt-4 mb-3"),
-
-        dcc.Tabs(id="tabs", value='tab-main-graph', children=[
-            dcc.Tab(label='Main Graph', value='tab-main-graph'),
+        dcc.Tabs(id="tabs", value='tab-map', children=[
+            dcc.Tab(label='Map View', value='tab-map'),
+            dcc.Tab(label='Gauge Graph', value='tab-main-graph'),
             dcc.Tab(label='By Canal', value='tab-canal'),
             dcc.Tab(label='Trends', value='tab-trends'),
-            dcc.Tab(label='Map View', value='tab-map'),
         ], colors={
             "border": "white",
             "primary": "black",
@@ -91,39 +111,110 @@ def dashboard_layout():
     ], fluid=False)
 
 def prediction_layout():
-    # Only include selected features
-    selected_feature_keys = ["ph", "do", "bod","no3", "tds",  "cod", "coliform"]
+    feature_defaults = {
+        "ph": 7.0,
+        "do": 6.5,
+        "bod": 2.0,
+        "no3": 5.0,
+        "tds": 300,
+        "cod": 20,
+        "coliform": 500
+    }
     filtered_feature_info = {k: feature_info[k] for k in selected_feature_keys}
-
     input_fields = list(filtered_feature_info.items())
-    cols = [input_fields[i::3] for i in range(3)]  # Distribute into 3 columns
+    cols = [input_fields[i::2] for i in range(2)]
 
     return dbc.Container([
         html.H2("Water Quality Prediction", className="text-center mt-4 mb-4"),
-        html.Div([
-            dbc.Row([
-                *[
-                    dbc.Col([
-                        html.Div([
-                            dbc.Label(label, html_for=key),
-                            dbc.Input(type="number", id=key, placeholder=f"Enter {label}", step="any", min=0, required=True)
-                        ], className="mb-3") for key, (_, label) in group
-                    ], md=4) for group in cols
-                ]
-            ], className="d-flex flex-wrap justify-content-center")
-        ]),
-        html.Div(className="text-center mt-3", children=[
-            dbc.Button("Predict", id="predict-button", color="primary", className="me-2"),
-            dbc.Button("Reset", id="reset-button", color="secondary", className="ms-2")
-        ]),
-        html.Hr(),
+
         dbc.Row([
             dbc.Col([
-                dbc.Alert(id='prediction-output', color='info', className='mt-3')
-            ])
+                dbc.Row([
+                    dbc.Col([
+                        dbc.Label(info[1]),
+                        dbc.Input(
+                            type="number",
+                            id=key,
+                            placeholder=f"Enter {info[1]}",
+                            step="any",
+                            min=0,
+                            value=feature_defaults.get(key, 0),
+                            required=True
+                        )
+                    ], md=6, className="mb-3")
+                    for group in cols for key, info in group
+                ]),
+                html.Div(className="text-center mt-3", children=[
+                    dbc.Button("Predict", id="predict-button", color="primary", className="me-2"),
+                    dbc.Button("Reset", id="reset-button", color="secondary", className="ms-2")
+                ])
+                #dbc.Alert(id="prediction-output", color="info", className="mt-4")
+            ], md=6),
+            dbc.Col([
+                dcc.Loading(
+                    id="loading-gauge",
+                    type="circle",
+                    color="#0d6efd",
+                    children=[
+                        dcc.Graph(id="gauge-graph"),
+                        html.Div(id="gauge-label", className="text-center fw-bold fs-4 mt-2")
+                ]
+                )
+            ], md=6),
         ])
     ], fluid=False)
 
+@app.callback(
+    Output('gauge-graph', 'figure'),
+    Output('gauge-label', 'children'),  
+    #Output('prediction-output', 'children'),
+    Input('predict-button', 'n_clicks'),
+    [State(key, 'value') for key in selected_feature_keys],
+    prevent_initial_call=True
+)
+def predict_quality(n_clicks, *inputs):
+    if not n_clicks:
+        return no_update, no_update
+
+    if any(val is None for val in inputs):
+        return "⚠️ Please fill in all fields before predicting.", no_update
+
+    try:
+        values = [float(x) for x in inputs]
+        values = np.array(values).reshape(1, -1)
+        scaled_data = scaler.transform(values)
+        wqi = np.exp(model.predict(scaled_data)[0])
+
+        if wqi >= 75:
+            label = "✅ Safe"
+            color = "#2c3e50"
+        elif wqi >= 50:
+            label = "⚠️ Potentially Unsafe"
+            color = "#2c3e50"
+        else:
+            label = "❌ Unsafe"
+            color = "#2c3e50"
+
+        fig = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=wqi,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={'text': "Predicted Water Quality Index"},
+            gauge={
+                'axis': {'range': [0, 100]},
+                'bar': {'color': color},
+                'steps': [
+                    {'range': [0, 50], 'color': "#FF6B6B"},
+                    {'range': [50, 75], 'color': "#FFD700"},
+                    {'range': [75, 100], 'color': "#00C49F"}
+                ]
+            }
+        ))
+
+        return fig, label
+
+    except Exception as e:
+        return f"Error in prediction: {e}"
 
 
 app.layout = html.Div([
@@ -139,36 +230,6 @@ def display_page(pathname):
         return prediction_layout()
     return dashboard_layout()
 
-selected_feature_keys = ["ph", "do", "bod","no3", "tds",  "cod", "coliform"]
-
-# Prediction logic
-@app.callback(
-    Output('prediction-output', 'children'),
-    Input('predict-button', 'n_clicks'),
-    [State(key, 'value') for key in selected_feature_keys]
-)
-def predict_quality(n_clicks, *inputs):
-    if not n_clicks:
-        return dash.no_update
-
-    if any(val is None for val in inputs):
-        return "⚠️ Please fill in all fields before predicting."
-
-    try:
-        values = [float(x) for x in inputs]
-        print(values)
-        values = np.array(values).reshape(1, -1)
-        scaled_data = scaler.transform(values)
-        wqi = np.exp(model.predict(scaled_data)[0])
-        if wqi >= 70:
-            label = "✅ Safe"
-        elif wqi >= 50:
-            label = "⚠️ Potentially Unsafe"
-        else:
-            label = "❌ Unsafe"
-        return f"Predicted Water Quality Index: {wqi:.2f} → {label}"
-    except Exception as e:
-        return f"Error in prediction: {e}"
 
 # Reset button logic
 @app.callback(
@@ -202,20 +263,16 @@ def render_tab_content(tab):
                     clearable=False
                 )
             ], md=6),
+
             dbc.Col([
                 html.Label("Select Metric:", className="fw-bold"),
                 dcc.Dropdown(
                     id='bar-metric-dropdown',
-                    options=[
-                        {'label': 'DO (mg/l)', 'value': 'DO (mg/l)'},
-                        {'label': 'pH', 'value': '  pH'},
-                        {'label': 'TEMP. (oC)', 'value': 'TEMP. (oC)'},
-                        {'label': 'NH3N (mg/l)', 'value': 'NH3N (mg/l)'}
-                    ],
+                    options=parameter_options,
                     value='DO (mg/l)',
                     clearable=False
                 )
-            ], md=6),
+            ], md=6)
         ], className="mb-4"),
 
         dcc.Graph(id='canal-bar-graph')
@@ -223,11 +280,33 @@ def render_tab_content(tab):
 
     elif tab == 'tab-main-graph':
         return html.Div([
-            html.Label("Select Year:"),
-            dcc.Dropdown(id='year-dropdown', options=year_options, value=year_options[0]['value'], clearable=False),
-            html.Label("Select Canal:", style={'marginTop': '10px'}),
-            dcc.Dropdown(id='canal-dropdown', options=canal_options, value=canal_options[0]['value'], clearable=False),
-            dcc.Graph(id='gauge-graph')
+            dbc.Row([
+                dbc.Col([
+                    html.Label("Select Year:", className="fw-semibold"),
+                    dcc.Dropdown(
+                        id='year-dropdown',
+                        options=year_options,
+                        value=year_options[0]['value'],
+                        clearable=False
+                    )
+                ], xs=6),
+
+                dbc.Col([
+                    html.Label("Select Canal:", className="fw-semibold"),
+                    dcc.Dropdown(
+                        id='canal-dropdown',
+                        options=canal_options,
+                        value=canal_options[0]['value'],
+                        clearable=False
+                    )
+                ], xs=6)
+            ], className="mb-4"),
+
+            dbc.Row([
+                dbc.Col([
+                    dcc.Graph(id='gauge-graph')
+                ])
+            ])
         ])
     elif tab == 'tab-trends':
         return html.Div([
@@ -242,7 +321,8 @@ def render_tab_content(tab):
             dcc.Graph(id='trend-line-chart')
         ])
     elif tab == 'tab-map':
-        return html.P("Map visualization placeholder", className="text-center")
+        return map_layout
+       
 
 @app.callback(
     Output('canal-bar-graph', 'figure'),
@@ -263,9 +343,10 @@ def update_bar_chart(selected_canal, selected_metric):
     return fig
 
 @app.callback(
-    Output('gauge-graph', 'figure'),
+    Output('gauge-graph', 'figure', allow_duplicate=True),
     Input('year-dropdown', 'value'),
-    Input('canal-dropdown', 'value')
+    Input('canal-dropdown', 'value'),
+    prevent_initial_call="initial_duplicate"
 )
 def update_gauge_graph(selected_year, selected_canal):
     filtered_df = aggregated_df[(aggregated_df['year'] == selected_year) & 
@@ -370,13 +451,14 @@ if __name__ == '__main__':
     Input('trend-canal-dropdown', 'value')
 )
 def update_trend_chart(selected_canal):
+    value_vars = [param["value"] for param in parameter_options if param['value'] != 'T.Coliform (col/100ml)']
     df_trend = aggregated_df[aggregated_df['Canal_name (EN)'] == selected_canal].copy()
     df_trend['year'] = df_trend['year'].astype(int)
 
     # Melt the dataframe to long format
     df_long = df_trend.melt(
         id_vars='year',
-        value_vars=['DO (mg/l)', '  pH', 'SS (mg/l)'],
+        value_vars=value_vars,
         var_name='Metric',
         value_name='Measurement'
     )
@@ -407,6 +489,7 @@ def update_active_link(pathname):
         dbc.NavLink("Dashboard", href="/", className=f"text-white {'fw-bold border-bottom border-2 border-white' if pathname == '/' else ''}"),
         dbc.NavLink("Prediction", href="/prediction", className=f"text-white {'fw-bold border-bottom border-2 border-white' if pathname == '/prediction' else ''}")
     ]
+
 
 
 if __name__ == "__main__":
